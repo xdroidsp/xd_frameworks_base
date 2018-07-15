@@ -41,4 +41,6 @@
     <string name="global_action_reboot_systemui">SystemUI</string>
     <string name="global_action_settings">Settings</string>
 
+    <!-- Name of the clock in status bar [CHAR LIMIT=30] -->
+    <string name="clock">Clock</string>
 </resources>
