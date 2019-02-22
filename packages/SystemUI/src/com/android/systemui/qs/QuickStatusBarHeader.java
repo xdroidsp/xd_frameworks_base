@@ -71,6 +71,9 @@ public class QuickStatusBarHeader extends FrameLayout implements TunerService.Tu
     private static final String QS_SHOW_BATTERY_PERCENT =
             "system:" + Settings.System.QS_SHOW_BATTERY_PERCENT;
 
+    private static final String SHOW_QS_CLOCK =
+            "system:" + Settings.System.SHOW_QS_CLOCK;
+
     private boolean mExpanded;
     private boolean mQsDisabled;
 
@@ -168,6 +171,7 @@ public class QuickStatusBarHeader extends FrameLayout implements TunerService.Tu
 
         mClockContainer = findViewById(R.id.clock_container);
         mClockView = findViewById(R.id.clock);
+        mClockView.setQsHeader();
         mDatePrivacySeparator = findViewById(R.id.space);
         // Tint for the battery icons are handled in setupHost()
         mBatteryRemainingIcon = findViewById(R.id.batteryRemainingIcon);
@@ -186,7 +190,8 @@ public class QuickStatusBarHeader extends FrameLayout implements TunerService.Tu
                 STATUS_BAR_BATTERY_STYLE,
                 QS_BATTERY_STYLE,
                 QS_SHOW_BATTERY_PERCENT,
-                StatusBarIconController.ICON_HIDE_LIST);
+                StatusBarIconController.ICON_HIDE_LIST,
+                SHOW_QS_CLOCK);
     }
 
     void onAttach(TintedIconManager iconManager,
@@ -638,6 +643,15 @@ public class QuickStatusBarHeader extends FrameLayout implements TunerService.Tu
 
     @Override
     public void onTuningChanged(String key, String newValue) {
+        switch (key) {
+            case SHOW_QS_CLOCK:
+                boolean showClock =
+                        TunerService.parseIntegerSwitch(newValue, true);
+                mClockView.setClockVisibleByUser(showClock);
+                break;
+            default:
+                break;
+        }
         mClockView.setClockVisibleByUser(!StatusBarIconController.getIconHideList(
                 mContext, newValue).contains("clock"));
     }
