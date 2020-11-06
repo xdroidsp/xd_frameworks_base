@@ -340,7 +340,8 @@ oneway interface IStatusBar
     void enterStageSplitFromRunningApp(boolean leftOrTop);
 
     /** xdroidOSS additions. */
-
+    void toggleCameraFlash();
+        
     /**
      * Used to block or unblock usage of gestural navigation
      */

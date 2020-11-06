@@ -231,6 +231,7 @@ interface IStatusBarService
     void showRearDisplayDialog(int currentBaseState);
 
     /** xdroidOSS additions. */
+    void toggleCameraFlash();
 
     /** Used to block or unblock usage of gestural navigation. */
     void setBlockedGesturalNavigation(boolean blocked);
