@@ -336,6 +336,8 @@ import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
+import com.android.server.DssController;
+
 /** {@hide} */
 public class WindowManagerService extends IWindowManager.Stub
         implements Watchdog.Monitor, WindowManagerPolicy.WindowManagerFuncs {
@@ -2182,6 +2184,13 @@ public class WindowManagerService extends IWindowManager.Stub
                         w.mGivenVisibleInsets.scale(w.mGlobalScale);
                         w.mGivenTouchableRegion.scale(w.mGlobalScale);
                     }
+
+                    if (w.mDssEnabled) {
+                        w.mGivenContentInsets.scale(1f / w.mDssScale);
+                        w.mGivenVisibleInsets.scale(1f / w.mDssScale);
+                        w.mGivenTouchableRegion.scale(1f / w.mDssScale);
+                    }
+
                     w.setDisplayLayoutNeeded();
                     mWindowPlacerLocked.performSurfacePlacement();
 
@@ -2517,6 +2526,12 @@ public class WindowManagerService extends IWindowManager.Stub
 
             win.fillClientWindowFramesAndConfiguration(outFrames, mergedConfiguration,
                     false /* useLatestConfig */, shouldRelayout);
+
+            if (win.mDssEnabled) {
+                DssController dssController = DssController.getService();
+                dssController.scaleExistingMergedConfiguration(mergedConfiguration,
+                        win.mAttrs.packageName);
+            }
 
             // Set resize-handled here because the values are sent back to the client.
             win.onResizeHandled();
