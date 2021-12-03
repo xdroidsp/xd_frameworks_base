@@ -229,4 +229,9 @@ interface IStatusBarService
 
     /** Shows rear display educational dialog */
     void showRearDisplayDialog(int currentBaseState);
+
+    /** xdroidOSS additions. */
+
+    /** Used to block or unblock usage of gestural navigation. */
+    void setBlockedGesturalNavigation(boolean blocked);
 }
