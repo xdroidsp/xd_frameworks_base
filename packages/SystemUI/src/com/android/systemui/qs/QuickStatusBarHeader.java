@@ -636,14 +636,6 @@ public class QuickStatusBarHeader extends FrameLayout implements TunerService.Tu
                 mBatteryRemainingIcon.setBatteryPercent(
                         TunerService.parseInteger(newValue, 2));
                 break;
-            default:
-                break;
-        }
-    }
-
-    @Override
-    public void onTuningChanged(String key, String newValue) {
-        switch (key) {
             case SHOW_QS_CLOCK:
                 boolean showClock =
                         TunerService.parseIntegerSwitch(newValue, true);

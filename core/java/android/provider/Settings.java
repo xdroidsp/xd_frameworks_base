@@ -18831,4 +18831,10 @@ public final class Settings {
      * @hide
      */
     public static String getPackageNameForUid(Context context, int uid) {
-        String[] packages = c
+        String[] packages = context.getPackageManager().getPackagesForUid(uid);
+        if (packages == null) {
+            return null;
+        }
+        return packages[0];
+    }
+}
