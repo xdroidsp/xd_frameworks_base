@@ -126,6 +126,8 @@ public class MobileSignalController extends SignalController<MobileState, Mobile
     private int mCallState = TelephonyManager.CALL_STATE_IDLE;
     private boolean mShowVolteIcon;
 
+    private SettingsObserver settingsObserver;
+
     private final MobileStatusTracker.Callback mMobileCallback =
             new MobileStatusTracker.Callback() {
                 private String mLastStatus;
@@ -294,8 +296,8 @@ public class MobileSignalController extends SignalController<MobileState, Mobile
         mProviderModelBehavior = featureFlags.isCombinedStatusBarSignalIconsEnabled();
         mProviderModelSetting = featureFlags.isProviderModelSettingEnabled();
 
-	Handler mHandler = new Handler();
-        SettingsObserver settingsObserver = new SettingsObserver(mHandler);
+        Handler mHandler = new Handler();
+        settingsObserver = new SettingsObserver(mHandler);
         settingsObserver.observe();
     }
 
@@ -419,6 +421,7 @@ public class MobileSignalController extends SignalController<MobileState, Mobile
     public void unregisterListener() {
         mMobileStatusTracker.setListening(false);
         mContext.getContentResolver().unregisterContentObserver(mObserver);
+        mContext.getContentResolver().unregisterContentObserver(settingsObserver);
         mImsMmTelManager.unregisterImsRegistrationCallback(mRegistrationCallback);
         mContext.unregisterReceiver(mVolteSwitchObserver);
         mFeatureConnector.disconnect();
