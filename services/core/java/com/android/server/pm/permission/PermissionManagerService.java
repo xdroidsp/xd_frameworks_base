@@ -4957,7 +4957,6 @@ public class PermissionManagerService extends IPermissionManager.Stub {
             }
             return;
         }
-        updatePermissions(packageName, null);
         for (final int userId : userIds) {
             if (sharedUserPkgs.isEmpty()) {
                 removeUidStateAndResetPackageInstallPermissionsFixed(appId, packageName, userId);
@@ -4979,6 +4978,7 @@ public class PermissionManagerService extends IPermissionManager.Stub {
                 }
             }
         }
+        updatePermissions(packageName, null);
     }
 
     @NonNull
