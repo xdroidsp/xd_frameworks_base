@@ -494,7 +494,7 @@ public class MediaOutputController implements LocalMediaManager.DeviceCallback {
     }
 
     private boolean isPlayBackInfoLocal() {
-        return mMediaController != null && mMediaController.getPlaybackInfo() != null
+        return mMediaController.getPlaybackInfo() != null
                 && mMediaController.getPlaybackInfo().getPlaybackType()
                         == MediaController.PlaybackInfo.PLAYBACK_TYPE_LOCAL;
     }
