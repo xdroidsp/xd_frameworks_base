@@ -28,15 +28,18 @@ import com.android.internal.R;
 public final class NotificationAccessConfirmationActivityContract {
     public static final String EXTRA_USER_ID = "user_id";
     public static final String EXTRA_COMPONENT_NAME = "component_name";
+    public static final String EXTRA_PACKAGE_TITLE = "package_title";
 
     /**
      * Creates a launcher intent for NotificationAccessConfirmationActivity.
      */
-    public static Intent launcherIntent(Context context, int userId, ComponentName component) {
+    public static Intent launcherIntent(Context context, int userId, ComponentName component,
+            String packageTitle) {
         return new Intent()
                 .setComponent(ComponentName.unflattenFromString(context.getString(
                         R.string.config_notificationAccessConfirmationActivity)))
                 .putExtra(EXTRA_USER_ID, userId)
-                .putExtra(EXTRA_COMPONENT_NAME, component);
+                .putExtra(EXTRA_COMPONENT_NAME, component)
+                .putExtra(EXTRA_PACKAGE_TITLE, packageTitle);
     }
 }

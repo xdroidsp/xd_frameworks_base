@@ -22,6 +22,7 @@ import static com.android.systemui.statusbar.phone.StatusBarIconHolder.TYPE_WIFI
 import android.annotation.Nullable;
 import android.content.Context;
 import android.os.Bundle;
+import android.provider.Settings;
 import android.text.TextUtils;
 import android.util.ArraySet;
 import android.view.Gravity;
