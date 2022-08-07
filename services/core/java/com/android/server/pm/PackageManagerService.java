@@ -15435,6 +15435,7 @@ public class PackageManagerService extends IPackageManager.Stub
                     mResolveActivity.launchMode = ActivityInfo.LAUNCH_MULTIPLE;
                     mResolveActivity.documentLaunchMode = ActivityInfo.DOCUMENT_LAUNCH_NEVER;
                     mResolveActivity.flags = ActivityInfo.FLAG_EXCLUDE_FROM_RECENTS
+                            | ActivityInfo.FLAG_HARDWARE_ACCELERATED 
                             | ActivityInfo.FLAG_RELINQUISH_TASK_IDENTITY;
                     mResolveActivity.theme = R.style.Theme_Material_Dialog_Alert;
                     mResolveActivity.exported = true;
@@ -22295,9 +22296,10 @@ public class PackageManagerService extends IPackageManager.Stub
             mPermissionManager.onPackageInstalled(pkg,
                     PermissionManagerServiceInternal.PackageInstalledParams.DEFAULT,
                     UserHandle.USER_ALL);
+            final boolean sync = "com.android.systemui".equals(pkg.getPackageName());
             for (final int userId : allUserHandles) {
                 if (applyUserRestrictions) {
-                    mSettings.writePermissionStateForUserLPr(userId, false);
+                    mSettings.writePermissionStateForUserLPr(userId, sync);
                 }
             }
 

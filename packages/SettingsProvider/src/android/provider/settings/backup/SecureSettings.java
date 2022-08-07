@@ -200,6 +200,7 @@ public class SecureSettings {
         Settings.Secure.ENABLE_LOCATION_PRIVACY_INDICATOR,
         Settings.Secure.GESTURE_NAVBAR_LENGTH_MODE,
         Settings.Secure.SHOW_COMBINED_STATUS_BAR_SIGNAL_ICONS,
-        Settings.Secure.STATUS_BAR_SHOW_VIBRATE_ICON
+        Settings.Secure.STATUS_BAR_SHOW_VIBRATE_ICON,
+        Settings.Secure.SHOW_WIFI_STANDARD_ICON,
     };
 }

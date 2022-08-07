@@ -812,6 +812,9 @@ status_t JMediaCodec::getOutputFrame(
     return OK;
 }
 
+status_t JMediaCodec::getName(AString *name) const {
+    return mCodec->getName(name);
+}
 
 status_t JMediaCodec::getName(JNIEnv *env, jstring *nameStr) const {
     AString name;
@@ -2285,6 +2288,41 @@ static status_t ConvertKeyValueListsToAMessage(
     return OK;
 }
 
+static bool obtain(
+        JMediaCodecLinearBlock *context,
+        int capacity,
+        const std::vector<std::string> &names,
+        bool secure) {
+    if (secure) {
+        constexpr size_t kInitialDealerCapacity = 1048576;  // 1MB
+        thread_local sp<MemoryDealer> sDealer = new MemoryDealer(
+                kInitialDealerCapacity, "JNI(1MB)");
+        context->mMemory = sDealer->allocate(capacity);
+        if (context->mMemory == nullptr) {
+            size_t newDealerCapacity = sDealer->getMemoryHeap()->getSize() * 2;
+            while (capacity * 2 > newDealerCapacity) {
+                newDealerCapacity *= 2;
+            }
+            ALOGI("LinearBlock.native_obtain: "
+                  "Dealer capacity increasing from %zuMB to %zuMB",
+                  sDealer->getMemoryHeap()->getSize() / 1048576,
+                  newDealerCapacity / 1048576);
+            sDealer = new MemoryDealer(
+                    newDealerCapacity,
+                    AStringPrintf("JNI(%zuMB)", newDealerCapacity).c_str());
+            context->mMemory = sDealer->allocate(capacity);
+        }
+        context->mHidlMemory = hardware::fromHeap(context->mMemory->getMemory(
+                    &context->mHidlMemoryOffset, &context->mHidlMemorySize));
+    } else {
+        context->mBlock = MediaCodec::FetchLinearBlock(capacity, names);
+        if (!context->mBlock) {
+            return false;
+        }
+    }
+    return true;
+}
+
 static void android_media_MediaCodec_native_queueLinearBlock(
         JNIEnv *env, jobject thiz, jint index, jobject bufferObj,
         jint offset, jint size, jobject cryptoInfoObj,
@@ -2314,11 +2352,39 @@ static void android_media_MediaCodec_native_queueLinearBlock(
                 (JMediaCodecLinearBlock *)env->GetLongField(bufferObj, gLinearBlockInfo.contextId);
             if (codec->hasCryptoOrDescrambler()) {
                 memory = context->toHidlMemory();
-                // TODO: copy if memory is null
+                if (!memory) {
+                    AString name;
+                    codec->getName(&name);
+                    ALOGI("%s: realloc & copying from C2Block to IMemory (cap=%zu)",
+                          name.c_str(), context->capacity());
+                    obtain(context, context->capacity(), { name.c_str() }, true /* secure */);
+                    C2WriteView view = context->mBlock->map().get();
+                    memcpy(static_cast<uint8_t *>(context->mMemory->unsecurePointer()) + offset,
+                           view.base() + offset,
+                           size);
+                    context->mBlock.reset();
+                    context->mReadWriteMapping.reset();
+                    memory = context->toHidlMemory();
+                }
                 offset += context->mHidlMemoryOffset;
             } else {
                 buffer = context->toC2Buffer(offset, size);
-                // TODO: copy if buffer is null
+                if (!buffer) {
+                    AString name;
+                    codec->getName(&name);
+                    ALOGI("%s: realloc & copying from IMemory to C2Block (cap=%zu)",
+                          name.c_str(), context->capacity());
+                    obtain(context, context->capacity(), { name.c_str() }, false /* secure */);
+                    C2WriteView view = context->mBlock->map().get();
+                    memcpy(view.base() + offset,
+                           static_cast<uint8_t *>(context->mMemory->unsecurePointer()) + offset,
+                           size);
+                    context->mMemory.clear();
+                    context->mHidlMemory.clear();
+                    context->mHidlMemorySize = 0;
+                    context->mHidlMemoryOffset = 0;
+                    buffer = context->toC2Buffer(offset, size);
+                }
             }
         }
         env->MonitorExit(lock.get());
@@ -2353,6 +2419,7 @@ static void android_media_MediaCodec_native_queueLinearBlock(
                 flags,
                 tunings,
                 &errorDetailMsg);
+        ALOGI_IF(err != OK, "queueEncryptedLinearBlock returned err = %d", err);
     } else {
         if (!buffer) {
             ALOGI("queueLinearBlock: no C2Buffer found");
@@ -3290,33 +3357,9 @@ static void android_media_MediaCodec_LinearBlock_native_obtain(
             hasNonSecure = true;
         }
     }
-    if (hasSecure && !hasNonSecure) {
-        constexpr size_t kInitialDealerCapacity = 1048576;  // 1MB
-        thread_local sp<MemoryDealer> sDealer = new MemoryDealer(
-                kInitialDealerCapacity, "JNI(1MB)");
-        context->mMemory = sDealer->allocate(capacity);
-        if (context->mMemory == nullptr) {
-            size_t newDealerCapacity = sDealer->getMemoryHeap()->getSize() * 2;
-            while (capacity * 2 > newDealerCapacity) {
-                newDealerCapacity *= 2;
-            }
-            ALOGI("LinearBlock.native_obtain: "
-                  "Dealer capacity increasing from %zuMB to %zuMB",
-                  sDealer->getMemoryHeap()->getSize() / 1048576,
-                  newDealerCapacity / 1048576);
-            sDealer = new MemoryDealer(
-                    newDealerCapacity,
-                    AStringPrintf("JNI(%zuMB)", newDealerCapacity).c_str());
-            context->mMemory = sDealer->allocate(capacity);
-        }
-        context->mHidlMemory = hardware::fromHeap(context->mMemory->getMemory(
-                    &context->mHidlMemoryOffset, &context->mHidlMemorySize));
-    } else {
-        context->mBlock = MediaCodec::FetchLinearBlock(capacity, names);
-        if (!context->mBlock) {
-            jniThrowException(env, "java/io/IOException", nullptr);
-            return;
-        }
+    if (!obtain(context.get(), capacity, names, (hasSecure && !hasNonSecure) /* secure */)) {
+        jniThrowException(env, "java/io/IOException", nullptr);
+        return;
     }
     env->CallVoidMethod(
             thiz,

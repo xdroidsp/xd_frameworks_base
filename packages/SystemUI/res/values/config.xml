@@ -619,8 +619,11 @@
     <!-- The properties of the face auth camera in pixels -->
     <integer-array name="config_face_auth_props">
         <!-- sensorLocationX -->
+	<item>540</item>
         <!-- sensorLocationY -->
-        <!--sensorRadius -->
+	<item>60</item>
+	<!--sensorRadius -->
+    	<item>24</item>
     </integer-array>
 
     <!-- Overrides the behavior of the face unlock keyguard bypass setting:

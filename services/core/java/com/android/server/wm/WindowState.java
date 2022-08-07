@@ -270,6 +270,8 @@ import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
+import com.android.server.DssController;
+
 /** A window in the window manager. */
 class WindowState extends WindowContainer<WindowState> implements WindowManagerPolicy.WindowState,
         InsetsControlTarget, InputTarget {
@@ -1037,6 +1039,9 @@ class WindowState extends WindowContainer<WindowState> implements WindowManagerP
 
     }
 
+    boolean mDssEnabled = false;
+    float mDssScale = 1.0f;
+
     WindowState(WindowManagerService service, Session s, IWindow c, WindowToken token,
             WindowState parentWindow, int appOp, WindowManager.LayoutParams a, int viewVisibility,
             int ownerId, int showUserId, boolean ownerCanAddInternalSystemWindow) {
@@ -1162,6 +1167,13 @@ class WindowState extends WindowContainer<WindowState> implements WindowManagerP
         if (mIsChildWindow) {
             ProtoLog.v(WM_DEBUG_ADD_REMOVE, "Adding %s to %s", this, parentWindow);
             parentWindow.addChild(this, sWindowSubLayerComparator);
+        }
+
+        DssController dssController = DssController.getService();
+        if (mAttrs.type != WindowManager.LayoutParams.TYPE_APPLICATION_STARTING &&
+                dssController.isScaledApp(mSession.mPid)) {
+            mDssEnabled = true;
+            mDssScale = dssController.getScalingFactor(mSession.mPid);
         }
 
         // System process or invalid process cannot register to display area config change.
@@ -1413,6 +1425,10 @@ class WindowState extends WindowContainer<WindowState> implements WindowManagerP
             // Also the scaled frame that we report to the app needs to be
             // adjusted to be in its coordinate space.
             windowFrames.mCompatFrame.scale(mInvGlobalScale);
+        }
+
+        if (mDssEnabled) {
+            DssController.Tools.applyScaleToCompatFrame(mWindowFrames.mCompatFrame, mDssScale);
         }
 
         if (mIsWallpaper && (fw != windowFrames.mFrame.width()
@@ -3871,6 +3887,10 @@ class WindowState extends WindowContainer<WindowState> implements WindowManagerP
             outFrames.displayFrame.scale(mInvGlobalScale);
         }
 
+        if (mDssEnabled) {
+            outFrames.displayFrame.scale(mDssScale);
+        }
+
         final Rect backdropFrame = outFrames.backdropFrame;
         // When the task is docked, we send fullscreen sized backdropFrame as soon as resizing
         // start even if we haven't received the relayout window, so that the client requests
@@ -4514,30 +4534,54 @@ class WindowState extends WindowContainer<WindowState> implements WindowManagerP
                 w = pw;
             } else if (hasCompatScale) {
                 w = (int) (attrs.width * mGlobalScale + .5f);
+                if (mDssEnabled) {
+                    w = (int)(w / mDssScale + .5f);
+                }
             } else {
                 w = attrs.width;
+                if (mDssEnabled) {
+                    w = (int)(w / mDssScale + .5f);
+                }
             }
             if (attrs.height < 0) {
                 h = ph;
             } else if (hasCompatScale) {
                 h = (int) (attrs.height * mGlobalScale + .5f);
+                if (mDssEnabled) {
+                    h = (int)(h / mDssScale + .5f);
+                }
             } else {
                 h = attrs.height;
+                if (mDssEnabled) {
+                    h = (int)(h / mDssScale + .5f);
+                }
             }
         } else {
             if (attrs.width == MATCH_PARENT) {
                 w = pw;
             } else if (hasCompatScale) {
                 w = (int) (mRequestedWidth * mGlobalScale + .5f);
+                if (mDssEnabled) {
+                    w = (int)(w / mDssScale + .5f);
+                }
             } else {
                 w = mRequestedWidth;
+                if (mDssEnabled) {
+                    w = (int)(w / mDssScale + .5f);
+                }
             }
             if (attrs.height == MATCH_PARENT) {
                 h = ph;
             } else if (hasCompatScale) {
                 h = (int) (mRequestedHeight * mGlobalScale + .5f);
+                if (mDssEnabled) {
+                    h = (int)(h / mDssScale + .5f);
+                }
             } else {
                 h = mRequestedHeight;
+                if (mDssEnabled) {
+                    h = (int)(h / mDssScale + .5f);
+                }
             }
         }
 
@@ -4549,6 +4593,10 @@ class WindowState extends WindowContainer<WindowState> implements WindowManagerP
             y = attrs.y;
         }
 
+        if (mDssEnabled) {
+            x = x / mDssScale;
+            y = y / mDssScale;
+        }
         if (inNonFullscreenContainer && !layoutInParentFrame()) {
             // Make sure window fits in containing frame since it is in a non-fullscreen task as
             // required by {@link Gravity#apply} call.
@@ -4587,6 +4635,10 @@ class WindowState extends WindowContainer<WindowState> implements WindowManagerP
         if (hasCompatScale) {
             // See comparable block in computeFrameLw.
             windowFrames.mCompatFrame.scale(mInvGlobalScale);
+        }
+
+        if (mDssEnabled) {
+            DssController.Tools.applyScaleToCompatFrame(mWindowFrames.mCompatFrame, mDssScale);
         }
     }
 
@@ -5625,6 +5677,17 @@ class WindowState extends WindowContainer<WindowState> implements WindowManagerP
             mLastHScale = newHScale;
             mLastVScale = newVScale;
         }
+
+        if (isChildWindow() && !mDssEnabled) {
+            final WindowState parent = getParentWindow();
+            if (parent.mDssEnabled) {
+                getPendingTransaction().setMatrix(getSurfaceControl(),
+                        newHScale * parent.mDssScale, 0, 0, newVScale * parent.mDssScale);
+            }
+        } else if (mDssEnabled && !isChildWindow()) {
+            getPendingTransaction().setMatrix(getSurfaceControl(),
+                    newHScale / mDssScale, 0, 0, newVScale  / mDssScale);
+        }
     }
 
     @Override
@@ -5730,6 +5793,11 @@ class WindowState extends WindowContainer<WindowState> implements WindowManagerP
         outPoint.offset(-mTmpPoint.x, -mTmpPoint.y);
 
         outPoint.y += mSurfaceTranslationY;
+
+        if (mDssEnabled && isChildWindow()) {
+            outPoint.x = (int) (outPoint.x * mDssScale + 0.5f);
+            outPoint.y = (int) (outPoint.y * mDssScale + 0.5f);
+        }
     }
 
     /**
@@ -5740,10 +5808,20 @@ class WindowState extends WindowContainer<WindowState> implements WindowManagerP
         if (!hasCompatScale()) {
             outPos.x = surfaceInsets.left;
             outPos.y = surfaceInsets.top;
+
+            if (mDssEnabled) {
+                outPos.x = (int) (surfaceInsets.left / mDssScale + 0.5f);
+                outPos.y = (int) (surfaceInsets.top / mDssScale + 0.5f);
+            }
             return;
         }
         outPos.x = (int) (surfaceInsets.left * mGlobalScale + 0.5f);
         outPos.y = (int) (surfaceInsets.top * mGlobalScale + 0.5f);
+
+        if (mDssEnabled) {
+            outPos.x = (int) (surfaceInsets.left / mDssScale + 0.5f);
+            outPos.y = (int) (surfaceInsets.top / mDssScale + 0.5f);
+        }
     }
 
     boolean needsRelativeLayeringToIme() {
@@ -6245,8 +6323,21 @@ class WindowState extends WindowContainer<WindowState> implements WindowManagerP
         }
 
         // Adjust for surface insets.
-        outSize.inset(-attrs.surfaceInsets.left, -attrs.surfaceInsets.top,
-                -attrs.surfaceInsets.right, -attrs.surfaceInsets.bottom);
+        if (mDssEnabled) {
+            Rect surfaceInsets = attrs.surfaceInsets;
+            Rect screenSurfaceInsets = new Rect(surfaceInsets);
+            screenSurfaceInsets.scale(1f / mDssScale);
+
+            final int width = outSize.width() + (surfaceInsets.left + surfaceInsets.right);
+            final int height = outSize.height() + (surfaceInsets.top + surfaceInsets.bottom);
+            outSize.left -= screenSurfaceInsets.left;
+            outSize.top -= screenSurfaceInsets.top;
+            outSize.right = outSize.left + width;
+            outSize.bottom = outSize.top + height;
+        } else {
+            outSize.inset(-attrs.surfaceInsets.left, -attrs.surfaceInsets.top,
+                    -attrs.surfaceInsets.right, -attrs.surfaceInsets.bottom);
+        }
     }
 
     /**

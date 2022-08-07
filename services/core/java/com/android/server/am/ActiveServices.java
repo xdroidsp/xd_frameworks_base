@@ -4914,7 +4914,9 @@ public final class ActiveServices {
             sr.setProcess(null, null, 0, null);
             sr.isolatedProc = null;
             sr.executeNesting = 0;
-            sr.forceClearTracker();
+            synchronized (mAm.mProcessStats.mLock) {
+                sr.forceClearTracker();
+            }
             if (mDestroyingServices.remove(sr)) {
                 if (DEBUG_SERVICE) Slog.v(TAG_SERVICE, "killServices remove destroying " + sr);
             }
@@ -5064,7 +5066,9 @@ public final class ActiveServices {
             i--;
             ServiceRecord sr = mDestroyingServices.get(i);
             if (sr.app == app) {
-                sr.forceClearTracker();
+                synchronized (mAm.mProcessStats.mLock) {
+                    sr.forceClearTracker();
+                }
                 mDestroyingServices.remove(i);
                 if (DEBUG_SERVICE) Slog.v(TAG_SERVICE, "killServices remove destroying " + sr);
             }
@@ -6003,10 +6007,16 @@ public final class ActiveServices {
         }
 
         if (ret == REASON_DENIED) {
-            final boolean isAllowedPackage =
-                    mAllowListWhileInUsePermissionInFgs.contains(callingPackage);
-            if (isAllowedPackage) {
-                ret = REASON_ALLOWLISTED_PACKAGE;
+            if (verifyPackage(callingPackage, callingUid)) {
+                final boolean isAllowedPackage =
+                        mAllowListWhileInUsePermissionInFgs.contains(callingPackage);
+                if (isAllowedPackage) {
+                    ret = REASON_ALLOWLISTED_PACKAGE;
+                }
+            } else {
+                EventLog.writeEvent(0x534e4554, "215003903", callingUid,
+                        "callingPackage:" + callingPackage + " does not belong to callingUid:"
+                                + callingUid);
             }
         }
 
@@ -6388,5 +6398,22 @@ public final class ActiveServices {
                 /* targetService */ null,
                 /* allowBackgroundActivityStarts */ false)
                 != REASON_DENIED;
+    }
+
+    /**
+     * Checks if a given packageName belongs to a given uid.
+     * @param packageName the package of the caller
+     * @param uid the uid of the caller
+     * @return true or false
+     */
+    private boolean verifyPackage(String packageName, int uid) {
+        if (uid == ROOT_UID || uid == SYSTEM_UID) {
+            //System and Root are always allowed
+            return true;
+        }
+        final int userId = UserHandle.getUserId(uid);
+        final int packageUid = mAm.getPackageManagerInternal()
+                .getPackageUid(packageName, PackageManager.MATCH_DEBUG_TRIAGED_MISSING, userId);
+        return UserHandle.isSameApp(uid, packageUid);
     }
 }

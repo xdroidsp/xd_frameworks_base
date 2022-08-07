@@ -35,6 +35,8 @@ import android.view.InsetsState.InternalInsetsType;
 import java.io.PrintWriter;
 import java.util.Objects;
 
+import android.app.ActivityThread;
+
 /**
  * Represents the state of a single window generating insets for clients.
  * @hide
@@ -49,6 +51,9 @@ public class InsetsSource implements Parcelable {
     private boolean mVisible;
 
     private final Rect mTmpFrame = new Rect();
+
+    private final float mDssScale = ActivityThread.currentActivityThread().getDssScale();
+    private final Rect mTmpScaleFrame = new Rect();
 
     public InsetsSource(@InternalInsetsType int type) {
         mType = type;
@@ -140,10 +145,14 @@ public class InsetsSource implements Parcelable {
         if (getType() == ITYPE_CAPTION_BAR) {
             return Insets.of(0, frame.height(), 0, 0);
         }
+
+        mTmpScaleFrame.set(frame);
+        mTmpScaleFrame.scale(mDssScale);
+
         // Checks for whether there is shared edge with insets for 0-width/height window.
         final boolean hasIntersection = relativeFrame.isEmpty()
-                ? getIntersection(frame, relativeFrame, mTmpFrame)
-                : mTmpFrame.setIntersect(frame, relativeFrame);
+                ? getIntersection(mTmpScaleFrame, relativeFrame, mTmpFrame)
+                : mTmpFrame.setIntersect(mTmpScaleFrame, relativeFrame);
         if (!hasIntersection) {
             return Insets.NONE;
         }

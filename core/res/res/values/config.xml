@@ -2997,7 +2997,7 @@
     <integer name="config_maxNumVisibleRecentTasks">-1</integer>
 
     <!-- The duration in which a recent task is considered in session and should be visible. -->
-    <integer name="config_activeTaskDurationHours">12</integer>
+    <integer name="config_activeTaskDurationHours">6</integer>
 
     <!-- default window ShowCircularMask property -->
     <bool name="config_windowShowCircularMask">false</bool>
@@ -5168,7 +5168,7 @@
     <integer name="config_defaultAnalogClockSecondsHandFps">1</integer>
 
     <!-- the number of the max cached processes in the system. -->
-    <integer name="config_customizedMaxCachedProcesses">32</integer>
+    <integer name="config_customizedMaxCachedProcesses">48</integer>
 
     <!-- The display cutout configs for secondary built-in display. -->
     <string name="config_secondaryBuiltInDisplayCutout" translatable="false"></string>
