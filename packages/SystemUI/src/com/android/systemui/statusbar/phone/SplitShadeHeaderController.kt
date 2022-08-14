@@ -24,10 +24,12 @@ import com.android.systemui.battery.BatteryMeterView
 import com.android.systemui.battery.BatteryMeterViewController
 import com.android.systemui.flags.FeatureFlags
 import com.android.systemui.qs.HeaderPrivacyIconsController
-import com.android.systemui.qs.carrier.QSCarrierGroupController
 import com.android.systemui.statusbar.phone.dagger.StatusBarComponent.StatusBarScope
 import com.android.systemui.statusbar.phone.dagger.StatusBarViewModule.SPLIT_SHADE_BATTERY_CONTROLLER
 import com.android.systemui.statusbar.phone.dagger.StatusBarViewModule.SPLIT_SHADE_HEADER
+
+import com.android.settingslib.Utils;
+
 import javax.inject.Inject
 import javax.inject.Named
 
@@ -36,7 +38,6 @@ class SplitShadeHeaderController @Inject constructor(
     @Named(SPLIT_SHADE_HEADER) private val statusBar: View,
     private val statusBarIconController: StatusBarIconController,
     private val privacyIconsController: HeaderPrivacyIconsController,
-    qsCarrierGroupControllerBuilder: QSCarrierGroupController.Builder,
     featureFlags: FeatureFlags,
     @Named(SPLIT_SHADE_BATTERY_CONTROLLER) batteryMeterViewController: BatteryMeterViewController
 ) {
@@ -46,10 +47,8 @@ class SplitShadeHeaderController @Inject constructor(
         private val SPLIT_HEADER_TRANSITION_ID = R.id.split_header_transition
     }
 
-    private val carrierIconSlots: List<String>
     private val combinedHeaders = featureFlags.useCombinedQSHeaders()
     private val iconManager: StatusBarIconController.IconManager
-    private val qsCarrierGroupController: QSCarrierGroupController
     private val iconContainer: StatusIconContainer
     private var visible = false
         set(value) {
@@ -115,20 +114,14 @@ class SplitShadeHeaderController @Inject constructor(
         // battery settings same as in QS icons
         batteryIcon.setPercentShowMode(BatteryMeterView.MODE_ESTIMATE)
 
-        carrierIconSlots = if (featureFlags.isCombinedStatusBarSignalIconsEnabled) {
-            listOf(
-                statusBar.context.getString(com.android.internal.R.string.status_bar_no_calling),
-                statusBar.context.getString(com.android.internal.R.string.status_bar_call_strength)
-            )
-        } else {
-            listOf(statusBar.context.getString(com.android.internal.R.string.status_bar_mobile))
-        }
-
         iconContainer = statusBar.findViewById(R.id.statusIcons)
-        iconManager = StatusBarIconController.IconManager(iconContainer, featureFlags)
-        qsCarrierGroupController = qsCarrierGroupControllerBuilder
-                .setQSCarrierGroup(statusBar.findViewById(R.id.carrier_group))
-                .build()
+        iconManager = StatusBarIconController.TintedIconManager(iconContainer, featureFlags)
+
+        // Set Icons Color Tint
+        iconManager.setTint(R.color.xd_textColorPrimary)
+        batteryIcon.updateColors(R.color.xd_textColorPrimary, R.color.xd_textColorSecondary,
+                    R.color.xd_textColorPrimary);
+
         updateVisibility()
         updateConstraints()
     }
@@ -188,22 +181,10 @@ class SplitShadeHeaderController @Inject constructor(
     }
 
     private fun updateListeners() {
-        qsCarrierGroupController.setListening(visible)
         if (visible) {
-            updateSingleCarrier(qsCarrierGroupController.isSingleCarrier)
-            qsCarrierGroupController.setOnSingleCarrierChangedListener { updateSingleCarrier(it) }
             statusBarIconController.addIconGroup(iconManager)
         } else {
-            qsCarrierGroupController.setOnSingleCarrierChangedListener(null)
             statusBarIconController.removeIconGroup(iconManager)
-        }
-    }
-
-    private fun updateSingleCarrier(singleCarrier: Boolean) {
-        if (singleCarrier) {
-            iconContainer.removeIgnoredSlots(carrierIconSlots)
-        } else {
-            iconContainer.addIgnoredSlots(carrierIconSlots)
         }
     }
 }

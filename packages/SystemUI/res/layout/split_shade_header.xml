@@ -61,17 +61,6 @@
             android:layout_height="match_parent"
             android:layout_gravity="end|center_vertical">
 
-            <include
-                android:id="@+id/carrier_group"
-                layout="@layout/qs_carrier_group"
-                android:layout_width="wrap_content"
-                android:layout_height="match_parent"
-                android:layout_gravity="end|center_vertical"
-                android:layout_marginStart="8dp"
-                android:focusable="false"
-                android:minHeight="@dimen/split_shade_header_min_height"
-                android:minWidth="48dp" />
-
             <com.android.systemui.statusbar.phone.StatusIconContainer
                 android:id="@+id/statusIcons"
                 android:layout_width="wrap_content"

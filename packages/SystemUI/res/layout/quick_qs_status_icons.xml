@@ -59,15 +59,12 @@
         />
     </LinearLayout>
 
-    <include layout="@layout/qs_carrier_group"
-        android:id="@+id/carrier_group"
+    <View
+        android:id="@+id/spacer"
         android:layout_width="0dp"
         android:layout_height="match_parent"
         android:layout_weight="1"
-        android:minHeight="@dimen/qs_header_row_min_height"
-        android:minWidth="48dp"
-        android:layout_marginStart="8dp"
-        android:layout_gravity="end|center_vertical"
+        android:layout_gravity="center"
         android:focusable="false"/>
 
     <View
@@ -75,8 +72,6 @@
         android:layout_width="0dp"
         android:layout_height="match_parent"
         android:layout_gravity="center"
-        android:layout_marginStart="8dp"
-        android:layout_marginEnd="8dp"
         android:visibility="gone"
         />
 
