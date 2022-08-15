@@ -19,6 +19,7 @@ package com.android.systemui.statusbar.phone
 import android.view.View
 import androidx.constraintlayout.motion.widget.MotionLayout
 import com.android.systemui.R
+import com.android.systemui.statusbar.policy.ClockEQS
 import com.android.systemui.animation.ShadeInterpolation
 import com.android.systemui.battery.BatteryMeterView
 import com.android.systemui.battery.BatteryMeterViewController
@@ -48,7 +49,7 @@ class SplitShadeHeaderController @Inject constructor(
     }
 
     private val combinedHeaders = featureFlags.useCombinedQSHeaders()
-    private val iconManager: StatusBarIconController.IconManager
+    private val iconManager: StatusBarIconController.TintedIconManager
     private val iconContainer: StatusIconContainer
     private var visible = false
         set(value) {
@@ -109,18 +110,24 @@ class SplitShadeHeaderController @Inject constructor(
 
     init {
         batteryMeterViewController.init()
+        val clockView: ClockEQS = statusBar.findViewById(R.id.clock_eqs)
+        val dateView: View = statusBar.findViewById(R.id.date)
         val batteryIcon: BatteryMeterView = statusBar.findViewById(R.id.batteryRemainingIcon)
 
-        // battery settings same as in QS icons
+        // Battery settings same as in QS icons
         batteryIcon.setPercentShowMode(BatteryMeterView.MODE_ESTIMATE)
 
+        // Icon Container
         iconContainer = statusBar.findViewById(R.id.statusIcons)
         iconManager = StatusBarIconController.TintedIconManager(iconContainer, featureFlags)
 
-        // Set Icons Color Tint
-        iconManager.setTint(R.color.xd_textColorPrimary)
-        batteryIcon.updateColors(R.color.xd_textColorPrimary, R.color.xd_textColorSecondary,
-                    R.color.xd_textColorPrimary);
+        // Set Color Tint
+        val colorPrimary = Utils.getColorAttrDefaultColor(statusBar.context, android.R.attr.textColorPrimary)
+        val colorSecondary = Utils.getColorAttrDefaultColor(statusBar.context, android.R.attr.textColorSecondary)
+
+        clockView.setTextColor(colorPrimary);
+        iconManager.setTint(colorPrimary);
+        batteryIcon.updateColors(colorPrimary, colorSecondary, colorPrimary);
 
         updateVisibility()
         updateConstraints()
