@@ -12,6 +12,6 @@
      limitations under the License.
 -->
 <resources>
-    <color name="xd_textColorPrimary">#000000</color>
-    <color name="xd_textColorSecondary">#000000</color>
+    <color name="xd_textColorPrimary">#FFFFFF</color>
+    <color name="xd_textColorSecondary">#FFFFFF</color>
 </resources>
