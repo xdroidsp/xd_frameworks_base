@@ -5521,6 +5521,12 @@ public final class Settings {
          */
 
         /**
+         * Whether to toogle mnmlist summary in Dashboard
+         * @hide
+         */
+        public static final String MNMLIST_SUMMARY = "mnmlist_summary";
+
+        /**
          * Keys we no longer back up under the current schema, but want to continue to
          * process when restoring historical backup datasets.
          *
