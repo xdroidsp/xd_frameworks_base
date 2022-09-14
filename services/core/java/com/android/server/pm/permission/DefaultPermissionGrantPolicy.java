@@ -580,6 +580,11 @@ final class DefaultPermissionGrantPolicy {
         String[] calendarSyncAdapterPackages = (syncAdapterPackagesProvider != null) ?
                 syncAdapterPackagesProvider.getPackages(CalendarContract.AUTHORITY, userId) : null;
 
+        // xdCore
+        grantSystemFixedPermissionsToSystemPackage(pm,
+                getDefaultProviderAuthorityPackage("id.xyzprjkt.xd.xdcore", userId),
+                userId, STORAGE_PERMISSIONS);
+
         // PermissionController
         grantSystemFixedPermissionsToSystemPackage(pm,
                 mContext.getPackageManager().getPermissionControllerPackageName(), userId,
