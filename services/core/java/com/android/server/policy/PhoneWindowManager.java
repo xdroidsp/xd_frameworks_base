@@ -745,7 +745,7 @@ public class PhoneWindowManager implements WindowManagerPolicy {
     private static final int MSG_SWITCH_KEYBOARD_LAYOUT = 25;
     private static final int MSG_LOG_KEYBOARD_SYSTEM_EVENT = 26;
     private static final int MSG_SET_DEFERRED_KEY_ACTIONS_EXECUTABLE = 27;
-    private static final int MSG_DISPATCH_VOLKEY_WITH_WAKE_LOCK = 27;
+    private static final int MSG_DISPATCH_VOLKEY_WITH_WAKE_LOCK = 28;
 
     private boolean mHasAlertSlider = false;
 
@@ -937,6 +937,7 @@ public class PhoneWindowManager implements WindowManagerPolicy {
                     UserHandle.USER_ALL);
             resolver.registerContentObserver(Settings.Secure.getUriFor(
                     Settings.Secure.NAV_BAR_KIDS_MODE), false, this,
+                    UserHandle.USER_ALL);
             resolver.registerContentObserver(Settings.System.getUriFor(
                     Settings.System.ALERT_SLIDER_ORDER), false, this,
                     UserHandle.USER_ALL);
